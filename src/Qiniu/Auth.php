@@ -71,14 +71,8 @@ final class Auth
         return "$baseUrl&token=$token";
     }
 
-    public function uploadToken(
-        $bucket,
-        $key = null,
-        $expires = 3600,
-        $policy = null,
-        $strictPolicy = true,
-        Zone $zone = null
-    ) {
+    public function uploadToken($bucket, $key = null, $expires = 3600, $policy = null, $strictPolicy = true)
+    {
         $deadline = time() + $expires;
         $scope = $bucket;
         if ($key !== null) {
@@ -89,15 +83,6 @@ final class Auth
         $args['scope'] = $scope;
         $args['deadline'] = $deadline;
 
-        if ($zone === null) {
-            $zone = new Zone();
-        }
-
-        list($upHosts, $err) = $zone->getUpHosts($this->accessKey, $bucket);
-        if ($err === null) {
-            $args['upHosts'] = $upHosts;
-        }
-        
         $b = json_encode($args);
         return $this->signWithData($b);
     }
@@ -128,11 +113,10 @@ final class Auth
         'persistentOps',
         'persistentNotifyUrl',
         'persistentPipeline',
-        
+
         'deleteAfterDays',
         'fileType',
-
-        'upHosts',
+        'isPrefixalScope',
     );
 
     private static function copyPolicy(&$policy, $originPolicy, $strictPolicy)
@@ -141,7 +125,7 @@ final class Auth
             return array();
         }
         foreach ($originPolicy as $key => $value) {
-            if (!$strictPolicy || in_array((string) $key, self::$policyFields, true)) {
+            if (!$strictPolicy || in_array((string)$key, self::$policyFields, true)) {
                 $policy[$key] = $value;
             }
         }
@@ -152,5 +136,52 @@ final class Auth
     {
         $authorization = 'QBox ' . $this->signRequest($url, $body, $contentType);
         return array('Authorization' => $authorization);
+    }
+
+    public function authorizationV2($url, $method, $body = null, $contentType = null)
+    {
+        $urlItems = parse_url($url);
+        $host = $urlItems['host'];
+
+        if (isset($urlItems['port'])) {
+            $port = $urlItems['port'];
+        } else {
+            $port = '';
+        }
+
+        $path = $urlItems['path'];
+        if (isset($urlItems['query'])) {
+            $query = $urlItems['query'];
+        } else {
+            $query = '';
+        }
+
+        //write request uri
+        $toSignStr = $method . ' ' . $path;
+        if (!empty($query)) {
+            $toSignStr .= '?' . $query;
+        }
+
+        //write host and port
+        $toSignStr .= "\nHost: " . $host;
+        if (!empty($port)) {
+            $toSignStr .= ":" . $port;
+        }
+
+        //write content type
+        if (!empty($contentType)) {
+            $toSignStr .= "\nContent-Type: " . $contentType;
+        }
+
+        $toSignStr .= "\n\n";
+
+        //write body
+        if (!empty($body)) {
+            $toSignStr .= $body;
+        }
+
+        $sign = $this->sign($toSignStr);
+        $auth = 'Qiniu ' . $sign;
+        return array('Authorization' => $auth);
     }
 }

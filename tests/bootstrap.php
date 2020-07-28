@@ -1,11 +1,11 @@
 <?php
 // @codingStandardsIgnoreFile
-require_once __DIR__.'/../vendor/autoload.php';
+require_once __DIR__ . '/../autoload.php';
 
 use Qiniu\Auth;
 
-$accessKey = getenv('QINIU_SDK_ENV_ACCESSKEY');
-$secretKey = getenv('QINIU_SDK_ENV_SECRETKEY');
+$accessKey = getenv('QINIU_ACCESS_KEY');
+$secretKey = getenv('QINIU_SECRET_KEY');
 $testAuth = new Auth($accessKey, $secretKey);
 
 $bucketName = 'phpsdk';
@@ -20,8 +20,8 @@ $dummySecretKey = '1234567890';
 $dummyAuth = new Auth($dummyAccessKey, $dummySecretKey);
 
 //cdn
-$timestampAntiLeechEncryptKey = getenv('QINIU_SDK_ENV_TIMESTAMP_ENCRPTKEY');
-$customDomain = "http://phpsdk.qiniuts.com";
+$timestampAntiLeechEncryptKey = getenv('QINIU_TIMESTAMP_ENCRPTKEY');
+$customDomain = "http://sdk.peterpy.cn";
 
 $tid = getenv('TRAVIS_JOB_NUMBER');
 if (!empty($tid)) {
@@ -35,7 +35,7 @@ function qiniuTempFile($size)
     $fileName = tempnam(sys_get_temp_dir(), 'qiniu_');
     $file = fopen($fileName, 'wb');
     if ($size > 0) {
-        fseek($file, $size-1);
+        fseek($file, $size - 1);
         fwrite($file, ' ');
     }
     fclose($file);
